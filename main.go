@@ -16,11 +16,11 @@ const (
 
 // Training общая структура для всех тренировок
 type Training struct {
-	TrainingType string		// тип тренировки
-	Action int				// количество повторов(шаги, гребки при плавании)
-	LenStep float64			// длина одного шага или гребка в (м)
-	Duration time.Duration	// продолжительность тренировки
-	Weight float64			// вес пользователя в кг
+	TrainingType string        // тип тренировки
+	Action       int           // количество повторов(шаги, гребки при плавании)
+	LenStep      float64       // длина одного шага или гребка в (м)
+	Duration     time.Duration // продолжительность тренировки
+	Weight       float64       // вес пользователя в кг
 }
 
 // distance возвращает дистанцию (km), которую преодолел пользователь.
@@ -47,11 +47,11 @@ func (t Training) Calories() float64 {
 // InfoMessage содержит информацию о проведенной тренировке.
 type InfoMessage struct {
 	// добавьте необходимые поля в структуру
-	TrainingType string		// тип тренировки
-	Duration time.Duration	// длительность тренировки
-	Distance float64		// расстояние, которое преодолел пользователь
-	Speed float64			// средняя скорость, с которой двигался пользователь
-	Calories float64		// количество потраченных килокалорий на тренировке
+	TrainingType string        // тип тренировки
+	Duration     time.Duration // длительность тренировки
+	Distance     float64       // расстояние, которое преодолел пользователь
+	Speed        float64       // средняя скорость, с которой двигался пользователь
+	Calories     float64       // количество потраченных килокалорий на тренировке
 }
 
 // TrainingInfo возвращает труктуру InfoMessage, в которой хранится вся информация о проведенной тренировке.
@@ -70,10 +70,10 @@ func (t Training) TrainingInfo() InfoMessage {
 func (i InfoMessage) String() string {
 	return fmt.Sprintf("Тип тренировки: %s\nДлительность: %v мин\nДистанция: %.2f км.\nСр. скорость: %.2f км/ч\nПотрачено ккал: %.2f\n",
 		i.TrainingType,
-		i.Duration.Minutes(),		// minutes
-		i.Distance,					// km
-		i.Speed,					// km/h
-		i.Calories,					// kkal
+		i.Duration.Minutes(), // minutes
+		i.Distance,           // km
+		i.Speed,              // km/h
+		i.Calories,           // kkal
 	)
 }
 
@@ -102,8 +102,8 @@ type Running struct {
 // Это переопределенный метод Calories() из Training.
 func (r Running) Calories() float64 {
 	// вставьте ваш код ниже
-	return ((float64(CaloriesMeanSpeedMultiplier) * r.meanSpeed() + float64(CaloriesMeanSpeedShift)) *
-			r.Weight / float64(MInKm) * r.Duration.Hours() * float64(MinInHours))
+	return (CaloriesMeanSpeedMultiplier*r.meanSpeed() + CaloriesMeanSpeedShift) *
+		r.Weight / MInKm * r.Duration.Hours() * MinInHours
 }
 
 // TrainingInfo возвращает структуру InfoMessage с информацией о проведенной тренировке.
@@ -124,7 +124,7 @@ const (
 type Walking struct {
 	// добавьте необходимые поля в структуру
 	Training
-	Height float64 // рост пользователя
+	Height float64 // рост пользователя (см)
 }
 
 // Calories возвращает количество потраченных килокалорий при ходьбе.
@@ -134,8 +134,8 @@ type Walking struct {
 // Это переопределенный метод Calories() из Training.
 func (w Walking) Calories() float64 {
 	// вставьте ваш код ниже
-	return ((CaloriesWeightMultiplier * w.Weight + (math.Pow(w.meanSpeed() * KmHInMsec, 2) / w.Height) *
-		CaloriesSpeedHeightMultiplier * w.Weight) * w.Duration.Hours() * MinInHours)
+	return ((CaloriesWeightMultiplier*w.Weight + (math.Pow(w.meanSpeed()*KmHInMsec, 2)/(w.Height/CmInM))*
+		CaloriesSpeedHeightMultiplier*w.Weight) * w.Duration.Hours() * MinInHours)
 }
 
 // TrainingInfo возвращает структуру InfoMessage с информацией о проведенной тренировке.
@@ -157,7 +157,7 @@ type Swimming struct {
 	// добавьте необходимые поля в структуру
 	Training
 	LengthPool int // длина бассейна (m)
-	CountPool int // количество пересечений бассейна (times)
+	CountPool  int // количество пересечений бассейна (times)
 }
 
 // meanSpeed возвращает среднюю скорость при плавании (km/h).
@@ -200,6 +200,9 @@ func ReadData(training CaloriesCalculator) string {
 }
 
 func main() {
+	// сообщения при неправильном значении данных (в т.ч., чтобы избежать деления на ноль)
+	var badDuration string = "Время тренировки должно быть больше нуля\n\n"
+	var badHeight string = "Рост должен быть больше нуля\n\n"
 
 	swimming := Swimming{
 		Training: Training{
@@ -213,7 +216,12 @@ func main() {
 		CountPool:  5,
 	}
 
-	fmt.Println(ReadData(swimming))
+	// провека поступающих на вход данных
+	if swimming.Duration <= 0 {
+		fmt.Printf("%s", badDuration)
+	} else {
+		fmt.Println(ReadData(swimming))
+	}
 
 	walking := Walking{
 		Training: Training{
@@ -226,7 +234,14 @@ func main() {
 		Height: 185,
 	}
 
-	fmt.Println(ReadData(walking))
+	// провека поступающих на вход данных
+	if walking.Duration <= 0 {
+		fmt.Printf("%s", badDuration)
+	} else if walking.Height <= 0 {
+		fmt.Printf("%s", badHeight)
+	} else {
+		fmt.Println(ReadData(walking))
+	}
 
 	running := Running{
 		Training: Training{
@@ -238,6 +253,11 @@ func main() {
 		},
 	}
 
-	fmt.Println(ReadData(running))
+	// провека поступающих на вход данных
+	if running.Duration <= 0 {
+		fmt.Printf("%s", badDuration)
+	} else {
+		fmt.Println(ReadData(running))
+	}
 
 }
